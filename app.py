@@ -13,14 +13,15 @@ from langchain_core.runnables.history import RunnableWithMessageHistory
 load_dotenv()
 
 # --- 2. 页面配置 ---
-st.set_page_config(page_title="全能AI学习助手", page_icon="🎓")
-st.title("🎓 全能 AI 学习助手")
+# 将页面标题和图标改为英文
+st.set_page_config(page_title="Omni AI Learning Assistant", page_icon="🎓")
+st.title("🎓 Omni AI Learning Assistant")
 
 # --- 3. 状态管理 (Session State) ---
 if "chat_store" not in st.session_state:
     st.session_state["chat_store"] = ChatMessageHistory()
-    # 初始欢迎语
-    st.session_state["chat_store"].add_ai_message("你好！我是你的全能学习助手。请选择学科开始提问吧！")
+    # 初始欢迎语 (改为英文)
+    st.session_state["chat_store"].add_ai_message("Hello! I am your Omni Learning Assistant. Please select a subject to start!")
 
 # 辅助函数：获取历史记录
 def get_session_history(session_id: str):
@@ -28,32 +29,33 @@ def get_session_history(session_id: str):
 
 # --- 4. 侧边栏设置 (功能升级区) ---
 with st.sidebar:
-    st.header("⚙️ 设置")
+    st.header("⚙️ Settings")  # 设置
     
-    # 4.1 学科扩展：新增 生物、物理
+    # 4.1 学科扩展：选项改为英文
     subject = st.selectbox(
-        "📚 选择学科", 
-        options=["计算机", "数学", "物理", "生物", "文学", "历史"]
+        "📚 Subject", 
+        options=["Computer Science", "Mathematics", "Physics", "Biology", "Literature", "History"]
     )
     
-    # 4.2 风格选择
+    # 4.2 风格选择：选项改为英文
     style = st.selectbox(
-        "🗣️ 讲解风格", 
-        options=["简洁直接", "详细教学", "苏格拉底式引导"]
+        "🗣️ Teaching Style", 
+        options=["Concise", "Detailed", "Socratic"]
     )
     
-    # 4.3 高级设置：创造力参数 (新增功能)
-    with st.expander("🛠️ 模型参数 (高级)"):
+    # 4.3 高级设置：创造力参数 (UI改为英文)
+    with st.expander("🛠️ Advanced Model Parameters"):
         temperature = st.slider(
-            "创造力 (Temperature)", 
+            "Creativity (Temperature)", 
             min_value=0.0, max_value=1.0, value=0.3, step=0.1,
-            help="数值越高回答越随机发散，数值越低越严谨。理科建议调低，文科建议调高。"
+            help="Higher values make responses more random/creative, lower values make them more rigorous. Low for STEM, High for Humanities."
         )
     
-    # 4.4 清空对话按钮 (新增功能)
-    if st.button("🗑️ 清空当前对话", use_container_width=True):
+    # 4.4 清空对话按钮 (UI改为英文)
+    if st.button("🗑️ Clear Conversation", use_container_width=True):
         st.session_state["chat_store"].clear()
-        st.session_state["chat_store"].add_ai_message(f"已重置。现在我们开始聊聊关于 **{subject}** 的话题吧！")
+        # 重置后的提示语也改为英文
+        st.session_state["chat_store"].add_ai_message(f"Reset successful. Let's start discussing **{subject}**!")
         st.rerun()
 
 # --- 5. 聊天界面渲染 ---
@@ -74,25 +76,27 @@ def get_chain(subject, style, temperature):
         streaming=True # 开启流式支持
     )
 
-    # 6.2 风格与提示词字典
+    # 6.2 风格与提示词字典 (键名必须与上方 selectbox 的英文选项一致)
+    # 提示词内容也翻译成了英文指令，确保 AI 输出英文
     style_prompts = {
-        "简洁直接": "直接给出核心答案，不要废话。如果是理科问题，直接列出公式和结果。",
-        "详细教学": "像老师一样循循善诱。1. 先给出直接结论；2. 逐步拆解原理；3. 举一个生活中的例子来类比。",
-        "苏格拉底式引导": "不要直接给答案。通过反问和提示，引导用户自己思考出答案。一步步引导。"
+        "Concise": "Provide direct answers with minimal fluff. If it's a STEM question, list formulas and results directly.",
+        "Detailed": "Teach like a patient tutor. 1. Give the direct conclusion first; 2. Break down the principles step-by-step; 3. Use real-world analogies.",
+        "Socratic": "Do not give the answer directly. Guide the user to think for themselves by asking leading questions and providing hints step-by-step."
     }
 
-    # 6.3 系统提示词 (针对物理/生物做了优化)
+    # 6.3 系统提示词 (针对物理/生物做了优化，并翻译为英文)
     # 特别增加了 LaTeX 格式说明，这对物理/数学很重要
-    system_prompt = f"""你是 {{subject}} 领域的资深专家导师。
+    system_prompt = f"""You are a senior expert tutor in the field of {{subject}}.
     
-    请遵循以下讲解风格：
+    Please follow this teaching style:
     {style_prompts[style]}
     
-    注意事项：
-    1. 如果涉及公式，请使用 LaTeX 格式（例如 $E=mc^2$）。
-    2. 如果涉及生物/化学反应，请清晰列出反应式。
-    3. 如果涉及代码，请使用代码块。
-    4. 严厉拒绝回答与 {{subject}} 无关的娱乐八卦问题。
+    Guidelines:
+    1. If formulas are involved, you MUST use LaTeX format (e.g., $E=mc^2$).
+    2. If biology/chemical reactions are involved, clearly list the reaction equations.
+    3. If code is involved, use code blocks.
+    4. Sternly refuse to answer entertainment or gossip questions irrelevant to {{subject}}.
+    5. Always respond in English.
     """
 
     prompt = ChatPromptTemplate.from_messages([
@@ -115,7 +119,8 @@ def get_chain(subject, style, temperature):
     return chain_with_history
 
 # --- 7. 处理用户输入 ---
-user_input = st.chat_input("输入你的问题...")
+# 输入框提示语改为英文
+user_input = st.chat_input("Type your question here...")
 
 if user_input:
     # 7.1 显示用户输入
