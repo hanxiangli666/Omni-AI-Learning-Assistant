@@ -67,17 +67,29 @@ for msg in st.session_state["chat_store"].messages:
 
 # --- 6. 核心逻辑 (LCEL链) ---
 def get_chain(subject, style, temperature):
-    # 6.1 模型初始化 (动态传入 temperature)
+    # --- 1. 先获取 API Key (逻辑放在外面) ---
+    # 优先尝试从本地环境变量获取
+    api_key = os.getenv("OPENAI_API_KEY")
+    
+    # 如果本地没有，尝试从 Streamlit 云端 Secrets 获取
+    if not api_key:
+        try:
+            api_key = st.secrets["OPENAI_API_KEY"]
+        except:
+            # 如果都没有，报错并停止
+            st.error("未检测到 API Key！请确保在 .env 文件(本地)或 Secrets(云端)中配置了 key。")
+            st.stop()
+
+    # --- 2. 再初始化模型 (使用刚才获取的 api_key 变量) ---
     llm = ChatOpenAI(
-        api_key=os.getenv("OPENAI_API_KEY"),
-        model="deepseek-chat", # 或 gpt-3.5-turbo
+        api_key=api_key,  # 这里直接填变量名
+        model="deepseek-chat",
         base_url="https://api.deepseek.com",
         temperature=temperature,
-        streaming=True # 开启流式支持
+        streaming=True
     )
 
     # 6.2 风格与提示词字典 (键名必须与上方 selectbox 的英文选项一致)
-    # 提示词内容也翻译成了英文指令，确保 AI 输出英文
     style_prompts = {
         "Concise": "Provide direct answers with minimal fluff. If it's a STEM question, list formulas and results directly.",
         "Detailed": "Teach like a patient tutor. 1. Give the direct conclusion first; 2. Break down the principles step-by-step; 3. Use real-world analogies.",
@@ -85,7 +97,9 @@ def get_chain(subject, style, temperature):
     }
 
     # 6.3 系统提示词 (针对物理/生物做了优化，并翻译为英文)
-    # 特别增加了 LaTeX 格式说明，这对物理/数学很重要
+    # (后面的 prompt 和 chain 代码保持不变)
+    
+    # 6.3 系统提示词
     system_prompt = f"""You are a senior expert tutor in the field of {{subject}}.
     
     Please follow this teaching style:
@@ -105,10 +119,8 @@ def get_chain(subject, style, temperature):
         ("human", "{input}"),
     ])
 
-    # 6.4 组装链
     chain = prompt | llm | StrOutputParser()
     
-    # 6.5 挂载记忆
     chain_with_history = RunnableWithMessageHistory(
         chain,
         get_session_history,
