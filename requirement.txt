@@ -1,0 +1,14 @@
+# 前端框架
+streamlit>=1.32.0
+
+# LangChain 核心与组件
+langchain>=0.1.0
+langchain-core>=0.1.0
+langchain-community>=0.0.10
+
+# 模型接口 (OpenAI & 兼容接口如 DeepSeek)
+langchain-openai>=0.0.5
+openai>=1.10.0
+
+# 环境变量管理
+python-dotenv>=1.0.0
